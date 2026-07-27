@@ -1,10 +1,20 @@
-{
-  "name": "에코파인더 - AI 분리수거 & 에코 마일리지",
-  "description": "AI 카메라 분리수거 인식, 분리배출 인증 및 보상 마일리지, 재미있는 분리수거 미니게임 웹앱",
-  "requestFramePermissions": [
-    "camera"
-  ],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
+
+# Run and deploy your AI Studio app
+
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/f78c0938-03ee-4f3e-952b-60e209c4d423
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

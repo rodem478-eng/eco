@@ -1,101 +1,236 @@
-export type WasteCategory =
-  | '투명페트병'
-  | '플라스틱'
-  | '비닐류'
-  | '종이/박스'
-  | '종이팩'
-  | '캔/고철'
-  | '유리병'
-  | '일반쓰레기'
-  | '음식물'
-  | '폐가전/건전지';
+import { GameWasteItem, RewardItem, Badge } from '../types';
 
-export interface RecyclingAnalysisResult {
-  itemName: string;
-  category: WasteCategory;
-  categoryColor: string;
-  isRecyclable: boolean;
-  recyclabilityTag: string;
-  preparationSteps: string[];
-  commonMistakes: string;
-  ecoPointsEstimated: number;
-  co2SavedGrams: number;
-  educationalTip: string;
-}
+export const SAMPLE_PRESETS = [
+  {
+    id: 'pet-bottle',
+    name: '투명 생수 페트병',
+    category: '투명페트병',
+    image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+    description: '라벨이 붙어있는 깨끗한 음료/생수 페트병',
+  },
+  {
+    id: 'pizza-box',
+    name: '기름기 묻은 피자 상자',
+    category: '일반쓰레기',
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80',
+    description: '피자 기름과 음식물이 찌든 종이 상자',
+  },
+  {
+    id: 'snack-bag',
+    name: '과자 봉지 (비닐)',
+    category: '비닐류',
+    image: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&w=600&q=80',
+    description: '과자나 라면 속 비닐 포장재',
+  },
+  {
+    id: 'soda-can',
+    name: '알루미늄 음료수 캔',
+    category: '캔/고철',
+    image: 'https://images.unsplash.com/photo-1527960471264-932f39eb5846?auto=format&fit=crop&w=600&q=80',
+    description: '음료가 들어있던 찌그러진 탄산 음료캔',
+  },
+  {
+    id: 'ice-pack',
+    name: '고분자 자반 아이스팩',
+    category: '일반쓰레기',
+    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80',
+    description: '젤 형태의 고분자 수지가 들어있는 아이스팩',
+  },
+  {
+    id: 'delivery-box',
+    name: '택배 종이 박스',
+    category: '종이/박스',
+    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
+    description: '테이프가 붙어 있는 일반 갈색 택배 박스',
+  },
+];
 
-export interface VerificationResult {
-  approved: boolean;
-  score: number;
-  ecoPointsEarned: number;
-  feedbackMessage: string;
-  improvementSuggestion?: string;
-  impact: {
-    co2SavedKg: number;
-    waterSavedLiters: number;
-  };
-}
+export const REWARD_ITEMS: RewardItem[] = [
+  {
+    id: 'r1',
+    title: '스타벅스 아메리카노 Tall',
+    category: 'coupon',
+    pointsCost: 4500,
+    image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80',
+    description: '에코 라이프 실천 감사 모바일 음료 교환권',
+    provider: '스타벅스',
+  },
+  {
+    id: 'r2',
+    title: '친환경 대나무 칫솔 세트 (2개입)',
+    category: 'product',
+    pointsCost: 3000,
+    image: 'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?auto=format&fit=crop&w=400&q=80',
+    description: '100% 생분해되는 제로웨이스트 대나무 칫솔',
+    provider: '에코샵',
+  },
+  {
+    id: 'r3',
+    title: '바다 해양 쓰레기 수거 5kg 기부',
+    category: 'donation',
+    pointsCost: 1000,
+    image: 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?auto=format&fit=crop&w=400&q=80',
+    description: '동해안 해양 플라스틱 쓰레기 수거 캠페인 지원',
+    provider: '해양환경공단',
+  },
+  {
+    id: 'r4',
+    title: 'CU 편의점 3,000원 모바일상품권',
+    category: 'coupon',
+    pointsCost: 3000,
+    image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=400&q=80',
+    description: '전국 CU 매장에서 사용 가능한 에코 쿠폰',
+    provider: 'CU',
+  },
+  {
+    id: 'r5',
+    title: '도시 숲 나무 1그루 심기 후원',
+    category: 'donation',
+    pointsCost: 2000,
+    image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80',
+    description: '미세먼지 줄이기 탄소중립 숲 조성 후원금',
+    provider: '생명의 숲',
+  },
+  {
+    id: 'r6',
+    title: '재활용 메쉬 에코 장바구니',
+    category: 'product',
+    pointsCost: 3500,
+    image: 'https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?auto=format&fit=crop&w=400&q=80',
+    description: '폐페트병 리사이클링 섬유로 만든 접이식 장바구니',
+    provider: '리사이클 브랜드',
+  },
+];
 
-export interface UserEcoProfile {
-  points: number;
-  level: number;
-  levelTitle: string;
-  streakDays: number;
-  totalVerifiedCount: number;
-  totalCo2SavedKg: number;
-  totalTreesSaved: number;
-  badges: Badge[];
-  history: VerificationHistory[];
-}
+export const INITIAL_BADGES: Badge[] = [
+  {
+    id: 'b1',
+    name: '첫걸음 그린이',
+    description: '첫 번째 분리수거 인증을 성공했습니다.',
+    icon: '🌱',
+    isUnlocked: true,
+    unlockedAt: '2026-07-20',
+  },
+  {
+    id: 'b2',
+    name: '라벨 마스터',
+    description: '페트병 투명 분리수거 5회 달성',
+    icon: '🏷️',
+    isUnlocked: true,
+    unlockedAt: '2026-07-24',
+  },
+  {
+    id: 'b3',
+    name: '분리수거 퀴즈왕',
+    description: '분리수거 게임에서 500점 이상 기록',
+    icon: '👑',
+    isUnlocked: false,
+  },
+  {
+    id: 'b4',
+    name: '탄소 다이어터',
+    description: '누적 탄소 절감량 5kg 달성',
+    icon: '🌍',
+    isUnlocked: false,
+  },
+  {
+    id: 'b5',
+    name: '연속 인증 7일',
+    description: '일주일 연속 분리수거 인증 출석',
+    icon: '🔥',
+    isUnlocked: false,
+  },
+];
 
-export interface Badge {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  unlockedAt?: string;
-  isUnlocked: boolean;
-}
-
-export interface VerificationHistory {
-  id: string;
-  timestamp: string;
-  itemName: string;
-  category: WasteCategory;
-  pointsEarned: number;
-  photoUrl: string;
-  verified: boolean;
-  feedback: string;
-}
-
-export interface RewardItem {
-  id: string;
-  title: string;
-  category: 'coupon' | 'product' | 'donation';
-  pointsCost: number;
-  image: string;
-  description: string;
-  provider: string;
-}
-
-export interface GameWasteItem {
-  id: string;
-  name: string;
-  iconName: string;
-  correctCategory: WasteCategory;
-  description: string;
-  tip: string;
-  isTricky: boolean;
-}
-
-export interface GameState {
-  score: number;
-  highScore: number;
-  timeLeft: number;
-  combo: number;
-  maxCombo: number;
-  lives: number;
-  correctCount: number;
-  wrongCount: number;
-  isPlaying: boolean;
-  isGameOver: boolean;
-}
+export const GAME_WASTE_ITEMS: GameWasteItem[] = [
+  {
+    id: 'g1',
+    name: '깨끗이 씻은 투명 생수병',
+    iconName: 'Droplet',
+    correctCategory: '투명페트병',
+    description: '라벨을 떼고 깨끗하게 세척한 음료 생수병',
+    tip: '유색 페트병이나 양념통 페트병은 일반 플라스틱으로 분리합니다.',
+    isTricky: false,
+  },
+  {
+    id: 'g2',
+    name: '기름때 묻은 피자박스',
+    iconName: 'Box',
+    correctCategory: '일반쓰레기',
+    description: '음식물이나 기름에 오염된 종이는 재활용 불가능합니다.',
+    tip: '오염되지 않은 깨끗한 뚜껑 부분만 찢어서 종이로 배출 가능!',
+    isTricky: true,
+  },
+  {
+    id: 'g3',
+    name: '과자 봉지 / 라면 봉지',
+    iconName: 'Package',
+    correctCategory: '비닐류',
+    description: '투명/유색 비닐 포장재는 딱지 접지 말고 펴서 배출',
+    tip: '딱지로 접으면 내부 오염 확인 및 분리가 어려워집니다.',
+    isTricky: false,
+  },
+  {
+    id: 'g4',
+    name: '내용물이 남은 컵라면 용기',
+    iconName: 'Utensils',
+    correctCategory: '일반쓰레기',
+    description: '국물 염분이 배어든 발포스티로폼 용기는 재활용 불가!',
+    tip: '햇볕에 바짝 말려 국물 자국을 지우면 스티로폼 재활용 가능.',
+    isTricky: true,
+  },
+  {
+    id: 'g5',
+    name: '철사 스프링을 뺀 노트',
+    iconName: 'BookOpen',
+    correctCategory: '종이/박스',
+    description: '스프링 철사와 비닐 커버를 분리한 순수 종이 본문',
+    tip: '비닐 코팅 표지나 철사는 반드시 미리 분리해주세요.',
+    isTricky: true,
+  },
+  {
+    id: 'g6',
+    name: '깨끗이 헹군 맥주 캔',
+    iconName: 'Beer',
+    correctCategory: '캔/고철',
+    description: '담배꽁초 등 이물질이 없고 찌그러뜨린 알루미늄 캔',
+    tip: '캔 속 이물질을 비우고 찌그러뜨려 볼륨을 줄여주세요.',
+    isTricky: false,
+  },
+  {
+    id: 'g7',
+    name: '깨진 유리의 조각',
+    iconName: 'ShieldAlert',
+    correctCategory: '일반쓰레기',
+    description: '깨진 유리, 거울, 내열유리, 도자기는 재활용 불가!',
+    tip: '신문지에 여러 번 싸서 불연성 쓰레기 봉투(종량제)에 버립니다.',
+    isTricky: true,
+  },
+  {
+    id: 'g8',
+    name: '우유 팩 (음료 종이팩)',
+    iconName: 'Milk',
+    correctCategory: '종이팩',
+    description: '일반 종이 박스와 다른 양면 코팅 종이팩 전용수거함',
+    tip: '일반 종이와 섞이지 않게 씻고 펴서 말린 후 종이팩 함으로!',
+    isTricky: true,
+  },
+  {
+    id: 'g9',
+    name: '사용한 폐건전지',
+    iconName: 'Battery',
+    correctCategory: '폐가전/건전지',
+    description: '중금속 유출 위험이 있어 전용 수거함 배출 필수',
+    tip: '주민센터나 아파트 폐건전지 전용 함에 버려주세요.',
+    isTricky: false,
+  },
+  {
+    id: 'g10',
+    name: '젤 형태 아이스팩',
+    iconName: 'Snowflake',
+    correctCategory: '일반쓰레기',
+    description: '고분자 수지가 들어간 아이스팩은 뜯지 말고 종량제 봉투',
+    tip: '통째로 종량제에 버리거나 전용 아이스팩 수거함 이용!',
+    isTricky: true,
+  },
+];

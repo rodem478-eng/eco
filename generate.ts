@@ -1,38 +1,68 @@
-{
-  "name": "react-example",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node dist/server.cjs",
-    "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@google/genai": "^2.4.0",
-    "@tailwindcss/vite": "^4.1.14",
-    "@types/canvas-confetti": "^1.9.0",
-    "@vitejs/plugin-react": "^5.0.4",
-    "canvas-confetti": "^1.9.4",
-    "dotenv": "^17.2.3",
-    "express": "^4.21.2",
-    "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "vite": "^6.2.3"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
-    "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "@types/express": "^4.17.21"
+import express from "express";
+import path from "path";
+import { createServer as createViteServer } from "vite";
+import { handleGenerateRequest } from "./api/generate";
+
+async function startServer() {
+  const app = express();
+  const PORT = 3000;
+
+  // JSON request body parser
+  app.use(express.json({ limit: "25mb" }));
+
+  // API health endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", service: "GreenScan EcoFinder Server" });
+  });
+
+  // Handle platform/telemetry/Vercel/Sentry mock endpoints to prevent 404 & 429 console errors
+  app.all(
+    [
+      "/api/v1/*",
+      "/api/v6/*",
+      "/api/projects/*",
+      "/api/deployments/*",
+      "/api/sentry/*",
+      "/ingest/*",
+      "/o205439.ingest.sentry.io/*",
+    ],
+    (_req, res) => {
+      res.status(200).json({ status: "ok", mock: true });
+    }
+  );
+
+  // Vercel serverless function equivalent route
+  app.post("/api/generate", async (req, res) => {
+    try {
+      const result = await handleGenerateRequest(req.body);
+      res.json(result);
+    } catch (error: any) {
+      console.error("API /api/generate error:", error);
+      res.status(500).json({ error: error.message || "서버 처리 오류가 발생했습니다." });
+    }
+  });
+
+  // Vite middleware for development vs static production serve
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
   }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`EcoFinder server running on http://0.0.0.0:${PORT}`);
+  });
 }
+
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
