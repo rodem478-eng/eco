@@ -1,0 +1,126 @@
+import React, { useState, useEffect } from 'react';
+import { Header } from './components/Header';
+import { CameraScanner } from './components/CameraScanner';
+import { RewardSection } from './components/RewardSection';
+import { RecyclingGame } from './components/RecyclingGame';
+import { GuideBot } from './components/GuideBot';
+import { UserEcoProfile, RecyclingAnalysisResult } from './types';
+import { INITIAL_BADGES } from './data/mockData';
+import { Leaf, Heart } from 'lucide-react';
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<'camera' | 'reward' | 'game' | 'guide'>(
+    'camera'
+  );
+
+  const [userProfile, setUserProfile] = useState<UserEcoProfile>(() => {
+    const saved = localStorage.getItem('ecofinder_profile');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback to initial
+      }
+    }
+    return {
+      points: 450,
+      level: 2,
+      levelTitle: '에코 그린이',
+      streakDays: 4,
+      totalVerifiedCount: 3,
+      totalCo2SavedKg: 1.85,
+      totalTreesSaved: 0.2,
+      badges: INITIAL_BADGES,
+      history: [
+        {
+          id: 'h1',
+          timestamp: '2026-07-26 14:20',
+          itemName: '투명 삼다수 페트병 500ml',
+          category: '투명페트병',
+          pointsEarned: 100,
+          photoUrl:
+            'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=400&q=80',
+          verified: true,
+          feedback: '라벨 제거 및 깨끗하게 헹군 뒤 압착된 우수한 상태입니다.',
+        },
+      ],
+    };
+  });
+
+  const [prefilledAnalysis, setPrefilledAnalysis] =
+    useState<RecyclingAnalysisResult | null>(null);
+  const [prefilledPhotoUrl, setPrefilledPhotoUrl] = useState<string | null>(null);
+
+  // Save profile to localStorage on updates
+  useEffect(() => {
+    localStorage.setItem('ecofinder_profile', JSON.stringify(userProfile));
+  }, [userProfile]);
+
+  const handleVerifyRequestFromScanner = (
+    analysisResult: RecyclingAnalysisResult,
+    photoBase64: string
+  ) => {
+    setPrefilledAnalysis(analysisResult);
+    setPrefilledPhotoUrl(photoBase64);
+    setActiveTab('reward');
+  };
+
+  const handleEarnPointsFromGame = (pointsEarned: number) => {
+    setUserProfile((prev) => ({
+      ...prev,
+      points: prev.points + pointsEarned,
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F0FDF4] text-slate-900 flex flex-col font-sans selection:bg-emerald-400 selection:text-emerald-950">
+      {/* Header Bar */}
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        userProfile={userProfile}
+      />
+
+      {/* Main Tab View Content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {activeTab === 'camera' && (
+          <CameraScanner onVerifyRequest={handleVerifyRequestFromScanner} />
+        )}
+
+        {activeTab === 'reward' && (
+          <RewardSection
+            userProfile={userProfile}
+            setUserProfile={setUserProfile}
+            prefilledAnalysis={prefilledAnalysis}
+            prefilledPhotoUrl={prefilledPhotoUrl}
+          />
+        )}
+
+        {activeTab === 'game' && (
+          <RecyclingGame onEarnPoints={handleEarnPointsFromGame} />
+        )}
+
+        {activeTab === 'guide' && <GuideBot />}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white/80 border-t border-emerald-100 text-xs text-slate-500 py-6 mt-12 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Leaf className="w-4 h-4 text-emerald-600" />
+            <span className="font-extrabold text-emerald-800">GreenScan</span>
+            <span>• 올바른 분리배출 자원순환 문화를 만듭니다</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-slate-400 font-medium">
+            <span>환경부 가이드라인 준수</span>
+            <span>•</span>
+            <span className="flex items-center gap-1 text-slate-600 font-semibold">
+              지구를 위한 작은 실천 <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+            </span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

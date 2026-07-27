@@ -1,0 +1,10 @@
+{
+  "name": "에코파인더 - AI 분리수거 & 에코 마일리지",
+  "description": "AI 카메라 분리수거 인식, 분리배출 인증 및 보상 마일리지, 재미있는 분리수거 미니게임 웹앱",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
