@@ -1,25 +1,338 @@
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import {defineConfig} from 'vite';
+import React, { useState, useEffect } from 'react';
+import {
+  Gamepad2,
+  Trophy,
+  Flame,
+  Heart,
+  RotateCcw,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Zap,
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { GameState, GameWasteItem, WasteCategory } from '../types';
+import { GAME_WASTE_ITEMS } from '../data/mockData';
 
-export default defineConfig(() => {
-  return {
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
-    server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-    build: {
-      modulePreload: {
-        polyfill: false,
-      },
-    },
+interface RecyclingGameProps {
+  onEarnPoints: (points: number) => void;
+}
+
+export const RecyclingGame: React.FC<RecyclingGameProps> = ({ onEarnPoints }) => {
+  const [gameState, setGameState] = useState<GameState>({
+    score: 0,
+    highScore: 1200,
+    timeLeft: 60,
+    combo: 0,
+    maxCombo: 0,
+    lives: 3,
+    correctCount: 0,
+    wrongCount: 0,
+    isPlaying: false,
+    isGameOver: false,
+  });
+
+  const [currentItemIndex, setCurrentItemIndex] = useState<number>(0);
+  const [feedback, setFeedback] = useState<{
+    type: 'correct' | 'wrong';
+    message: string;
+    tip: string;
+  } | null>(null);
+
+  const bins: { category: WasteCategory; label: string; color: string; icon: string }[] = [
+    { category: '투명페트병', label: '투명페트', color: 'bg-teal-900 border-teal-600 text-teal-200', icon: '💧' },
+    { category: '플라스틱', label: '플라스틱', color: 'bg-emerald-900 border-emerald-600 text-emerald-200', icon: '♻️' },
+    { category: '비닐류', label: '비닐류', color: 'bg-purple-900 border-purple-600 text-purple-200', icon: '🛍️' },
+    { category: '종이/박스', label: '종이/박스', color: 'bg-amber-900 border-amber-600 text-amber-200', icon: '📦' },
+    { category: '캔/고철', label: '캔/고철', color: 'bg-cyan-900 border-cyan-600 text-cyan-200', icon: '🥫' },
+    { category: '일반쓰레기', label: '일반쓰레기', color: 'bg-rose-900 border-rose-600 text-rose-200', icon: '🗑️' },
+    { category: '폐가전/건전지', label: '건전지/가전', color: 'bg-slate-800 border-slate-600 text-slate-200', icon: '🔋' },
+  ];
+
+  // Game Timer Effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (gameState.isPlaying && gameState.timeLeft > 0) {
+      timer = setInterval(() => {
+        setGameState((prev) => {
+          if (prev.timeLeft <= 1) {
+            handleGameOver(prev.score, prev.highScore);
+            return { ...prev, timeLeft: 0, isPlaying: false, isGameOver: true };
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1 };
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [gameState.isPlaying, gameState.timeLeft]);
+
+  const startGame = () => {
+    setGameState({
+      score: 0,
+      highScore: gameState.highScore,
+      timeLeft: 60,
+      combo: 0,
+      maxCombo: 0,
+      lives: 3,
+      correctCount: 0,
+      wrongCount: 0,
+      isPlaying: true,
+      isGameOver: false,
+    });
+    setCurrentItemIndex(0);
+    setFeedback(null);
   };
-});
+
+  const handleGameOver = (finalScore: number, currentHigh: number) => {
+    const isNewHigh = finalScore > currentHigh;
+    if (isNewHigh) {
+      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+    }
+
+    // Convert game score to Eco Points reward (10% of score)
+    const earnedPoints = Math.floor(finalScore / 10);
+    if (earnedPoints > 0) {
+      onEarnPoints(earnedPoints);
+    }
+
+    setGameState((prev) => ({
+      ...prev,
+      highScore: Math.max(finalScore, currentHigh),
+      isPlaying: false,
+      isGameOver: true,
+    }));
+  };
+
+  const handleSelectBin = (selectedCategory: WasteCategory) => {
+    if (!gameState.isPlaying) return;
+
+    const currentItem = GAME_WASTE_ITEMS[currentItemIndex];
+    const isCorrect = currentItem.correctCategory === selectedCategory;
+
+    if (isCorrect) {
+      const newCombo = gameState.combo + 1;
+      const pointsAdded = 100 + (newCombo - 1) * 20;
+
+      setFeedback({
+        type: 'correct',
+        message: `정답입니다! +${pointsAdded}점`,
+        tip: currentItem.tip,
+      });
+
+      setGameState((prev) => ({
+        ...prev,
+        score: prev.score + pointsAdded,
+        combo: newCombo,
+        maxCombo: Math.max(prev.maxCombo, newCombo),
+        correctCount: prev.correctCount + 1,
+      }));
+    } else {
+      const newLives = gameState.lives - 1;
+      setFeedback({
+        type: 'wrong',
+        message: `오답입니다! 정답: '${currentItem.correctCategory}'`,
+        tip: currentItem.description,
+      });
+
+      setGameState((prev) => {
+        if (newLives <= 0) {
+          setTimeout(() => handleGameOver(prev.score, prev.highScore), 1500);
+          return {
+            ...prev,
+            lives: 0,
+            combo: 0,
+            wrongCount: prev.wrongCount + 1,
+            isPlaying: false,
+            isGameOver: true,
+          };
+        }
+        return {
+          ...prev,
+          lives: newLives,
+          combo: 0,
+          wrongCount: prev.wrongCount + 1,
+        };
+      });
+    }
+
+    // Advance to next item
+    setCurrentItemIndex((prev) => (prev + 1) % GAME_WASTE_ITEMS.length);
+  };
+
+  const currentItem: GameWasteItem = GAME_WASTE_ITEMS[currentItemIndex];
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Title & Rules Card */}
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 border border-emerald-400/30 rounded-3xl p-6 shadow-lg text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-black text-white flex items-center gap-2">
+            <Gamepad2 className="w-6 h-6 text-yellow-300" />
+            스피드 분리수거 미니게임
+          </h2>
+          <p className="text-xs sm:text-sm text-emerald-50 mt-1 font-medium leading-relaxed">
+            60초 동안 화면에 나오는 쓰레기를 올바른 분리수거함으로 분류해 점수와 마일리지를 얻으세요!
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0 text-xs font-bold">
+          <div className="px-3.5 py-2 rounded-2xl bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
+            <Trophy className="w-4 h-4 fill-slate-950/20" />
+            <span>최고 점수: {gameState.highScore}점</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Game Interface */}
+      <div className="bg-white border border-emerald-100 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden text-slate-900">
+        {/* Game Stats Bar */}
+        <div className="flex items-center justify-between pb-4 border-b border-emerald-100 text-xs sm:text-sm font-bold">
+          {/* Time Remaining */}
+          <div className="flex items-center gap-1.5 text-emerald-700">
+            <Zap className="w-4 h-4 text-emerald-600" />
+            <span>시간: {gameState.timeLeft}초</span>
+          </div>
+
+          {/* Combo Multiplier */}
+          <div className="flex items-center gap-1 text-orange-600">
+            <Flame className="w-4 h-4 fill-orange-500 text-orange-500" />
+            <span>{gameState.combo} 콤보</span>
+          </div>
+
+          {/* Lives (Hearts) */}
+          <div className="flex items-center gap-1">
+            {[1, 2, 3].map((h) => (
+              <Heart
+                key={h}
+                className={`w-4 h-4 ${
+                  h <= gameState.lives
+                    ? 'text-rose-500 fill-rose-500'
+                    : 'text-slate-300'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Current Score */}
+          <div className="text-amber-600 font-black text-lg">
+            {gameState.score} 점
+          </div>
+        </div>
+
+        {/* Game Area Content */}
+        {!gameState.isPlaying && !gameState.isGameOver ? (
+          /* Start Screen */
+          <div className="text-center py-12 px-4 space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs">
+              <Gamepad2 className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900">분리수거 챌린지 시작</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed font-medium">
+              기름기 묻은 피자박스, 컵라면 용기, 스프링 노트 등 헷갈리는 쓰레기가 나옵니다.
+              연속 정답(콤보)을 이어나가면 점수 폭탄과 함께 에코 마일리지를 받습니다!
+            </p>
+
+            <button
+              onClick={startGame}
+              className="px-8 py-3.5 bg-yellow-400 hover:bg-yellow-500 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-lg shadow-yellow-400/20 active:scale-95 transition-all"
+            >
+              🎮 게임 시작하기 (60초)
+            </button>
+          </div>
+        ) : gameState.isGameOver ? (
+          /* Game Over Screen */
+          <div className="text-center py-8 space-y-5 animate-fade-in">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-600 shadow-xs">
+              <Trophy className="w-8 h-8" />
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-black text-slate-900">게임 종료!</h3>
+              <p className="text-3xl font-black text-amber-600 mt-1">
+                최종 점수: {gameState.score}점
+              </p>
+              <p className="text-xs text-emerald-700 mt-2 font-bold bg-emerald-50 py-1.5 px-4 rounded-full inline-block border border-emerald-200">
+                🎉 에코 마일리지 +{Math.floor(gameState.score / 10)} P 적립 완료!
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-6 text-xs text-slate-500 font-bold py-2 border-y border-emerald-100 max-w-sm mx-auto">
+              <span>정답: {gameState.correctCount}개</span>
+              <span>최대 콤보: {gameState.maxCombo}회</span>
+              <span>오답: {gameState.wrongCount}개</span>
+            </div>
+
+            <button
+              onClick={startGame}
+              className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm rounded-2xl mx-auto shadow-md active:scale-95 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>다시 도전하기</span>
+            </button>
+          </div>
+        ) : (
+          /* Active Gameplay Area */
+          <div className="py-6 space-y-6">
+            {/* Target Waste Item Card */}
+            <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50/60 border-2 border-emerald-300 rounded-3xl text-center space-y-2 shadow-inner relative">
+              {currentItem.isTricky && (
+                <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200 shadow-xs">
+                  ⚠️ 헷갈리는 항목!
+                </span>
+              )}
+
+              <span className="text-xs font-bold text-emerald-700 block">
+                이 쓰레기는 어디로 분류할까요?
+              </span>
+              <h3 className="text-2xl font-black text-slate-900">{currentItem.name}</h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto font-medium">
+                {currentItem.description}
+              </p>
+            </div>
+
+            {/* Instant Feedback Notice */}
+            {feedback && (
+              <div
+                className={`p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 animate-fade-in ${
+                  feedback.type === 'correct'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}
+              >
+                {feedback.type === 'correct' ? (
+                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="w-4.5 h-4.5 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <p className="font-extrabold">{feedback.message}</p>
+                  <p className="text-[11px] opacity-90 mt-0.5 font-medium">{feedback.tip}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Waste Bins Buttons Grid */}
+            <div>
+              <p className="text-xs font-bold text-slate-500 mb-3 text-center">
+                알맞은 분리수거함 버튼을 누르세요!
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {bins.map((bin) => (
+                  <button
+                    key={bin.category}
+                    onClick={() => handleSelectBin(bin.category)}
+                    className={`p-3.5 rounded-2xl border font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-1.5 transition-all shadow-md hover:scale-105 active:scale-95 ${bin.color}`}
+                  >
+                    <span className="text-xl">{bin.icon}</span>
+                    <span>{bin.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

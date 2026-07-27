@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/api/v6/:path*",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/api/projects/:path*",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/api/deployments/:path*",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/api/sentry/:path*",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
